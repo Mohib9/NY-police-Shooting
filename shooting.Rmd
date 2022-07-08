@@ -1,0 +1,140 @@
+---
+title: "New York Shooting"
+output:
+  html_document: default
+  pdf_document: default
+date: '2022-06-30'
+---
+
+
+
+## Required Libraries
+
+```{r}
+library(dplyr)
+library(tidyverse)
+```
+
+## About the Data
+
+The dataset was imported from the US catalog of shooting incidents in the city of New York from the link 'https://catalog.data.gov/dataset/nypd-shooting-incident-data-historic/resource/c564b578-fd8a-4005-8365-34150d306cc4'.It mainly shows the data collected for the past 2 decades regarding the shooting incidents in the city of new york like the victims age, gender etc.
+
+```{r , warning=FALSE}
+ny_data = read_csv('https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD')
+```
+
+## Tidying and Transforming
+
+Getting an overview of the data that we are dealing with:
+
+```{r, include=TRUE}
+summary(ny_data)
+```
+
+Now, owing to the objective of our analysis, we will be removing certain columns that are not required which are:
+
+1. Incident key
+
+2. Precinct
+
+3. Location
+4. Perpetrator Age Group
+5. Perpetrator Sex
+6. Perpetrator Race
+7. Victim Race
+8. X coordinates
+9. Y coordinates
+10. Latitude
+11. Longitude
+12. Geo point
+13. Jurisdiction Code
+
+```{r}
+ny_data_mod = subset(ny_data, select = -c(INCIDENT_KEY ,OCCUR_TIME, PRECINCT, LOCATION_DESC, PERP_AGE_GROUP,PERP_SEX , PERP_RACE,X_COORD_CD, Y_COORD_CD,Latitude,Longitude, Lon_Lat ) )
+```
+
+We will also remove the rows which contain any NA values.
+
+```{r}
+ny_data_mod = ny_data_mod %>% drop_na()
+```
+Now, let us take a look at our cleaned data:
+
+```{r}
+head(ny_data_mod)
+```
+
+We can see that the occurence date column is in character which is not correct, so we need to change it to type date:
+
+```{r}
+ny_data_mod$OCCUR_DATE = as.Date(ny_data_mod$OCCUR_DATE , format =  "%m/%d/%Y")
+```
+
+## Visualization & Analysis
+
+Our analysis will be based on answering the following question:
+
+1. Which boro's has the highest crime rate?
+2. Which Age group is the most exposed to crime?
+3. Which Gender will make the person more liable to a criminal act?
+4. Which Race will be more exposed?
+5. Which age group is primarily exposed to murder?
+6. Which month is the most crime savvy? 
+
+```{r, out.width="100%"}
+table(ny_data_mod$BORO)
+
+barplot(table(ny_data_mod$BORO), main = 'Boro Crime Count' , xlab = 'Boros')
+```
+
+So, while looking at the above graph, we can say that 'Brooklyn' is the most dangerous area in terms of the total crimes committed over the years.
+
+```{r, out.width="100%"}
+table(ny_data_mod$VIC_AGE_GROUP)
+barplot(table(ny_data_mod$VIC_AGE_GROUP), main = 'Victim Age Group Crime Count', xlab = 'Vic Age Group')
+```
+
+The most prone age group to report or be a victim to a crime is '25-44' age group which is closely followed by the '18-24' age group.
+
+
+```{r, out.width="100%"}
+table(ny_data_mod$VIC_SEX)
+barplot(table(ny_data_mod$VIC_SEX), main = 'Victim Gender Crime Count', xlab = 'Vic Gender')
+```
+
+While comparing the victim's gender, males seem to be the most effected and the difference is a huge blow as well with more than 20000 reported male victims and almost 2500 female victims reported.
+
+```{r, out.width="100%"}
+table(ny_data_mod$VIC_RACE)
+barplot(table(ny_data_mod$VIC_RACE), main = 'Victim Race Crime Count', xlab = 'Vic Race')
+```
+
+Black people are the most victims reported by the New York data over the years.
+
+```{r, out.width="100%"}
+age_murder = ny_data_mod %>% count(VIC_AGE_GROUP, STATISTICAL_MURDER_FLAG)
+
+ggplot(age_murder , aes(x = VIC_AGE_GROUP , y = n , fill = STATISTICAL_MURDER_FLAG)) + geom_bar(stat='identity', color="black", position=position_dodge())
+```
+
+Victims who are in between 25-44 are most likely to be killed when shot at. This is synonymous with the overall observation that the victims who fall in this bracket are likely to face some sort of crime against them.
+
+```{r, out.width="100%"}
+ny_data_mod$OCCUR_DATE = format(ny_data_mod$OCCUR_DATE, format="%m")
+
+barplot(table(ny_data_mod$OCCUR_DATE), main = 'Monthly Crime Count', xlab = 'Months')
+```
+
+The months of July and August seem to be the most dangerous in terms of reported crimes.
+
+## Cumulative Analysis
+
+We can sum up the takeaways from the analysis above as follows:
+
+1. The age group between 25-44 seems to be the most likely victims of some sort of crime including murder. This observation might be skewed as the same age bracket is mainly composed of the prime working class so more exposure is also there.
+2. The most dangerous area seems to be Brooklyn closely followed by Bronx.
+3. The most deadly time of the year seems be the summers with the crime rate peaking in July and August so an additional police unit might be a good idea during these months especially.
+
+## Conclusion
+
+A very basic analysis was carried out above which can be further improved by integrating the time of a particular crime and the precinct to effectively utilize and reinforce certain police units depending on the crime rate in the areas as well the time of the year. 
